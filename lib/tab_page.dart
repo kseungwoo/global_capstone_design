@@ -1,3 +1,4 @@
+import 'package:chapter10/create_page.dart';
 import 'package:chapter10/search_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -6,9 +7,9 @@ import 'account_page.dart';
 import 'home_page.dart';
 
 class TabPage extends StatefulWidget {
-//  final FirebaseUser user;
+  final FirebaseUser user;
 
-//  TabPage(this.user);
+  TabPage(this.user);
 
   @override
   _TabPageState createState() => _TabPageState();
@@ -23,9 +24,10 @@ class _TabPageState extends State<TabPage> {
   void initState() {
     super.initState();
     _pages = [
-      HomePage(),
-      SearchPage(),
-      AccountPage()
+      HomePage(widget.user),
+      // CreatePage(widget.user),
+      SearchPage(widget.user),
+      AccountPage(widget.user)
     ];
   }
 
@@ -38,6 +40,7 @@ class _TabPageState extends State<TabPage> {
         fixedColor: Colors.black,
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), title: Text('Home')),
+          // BottomNavigationBarItem(icon: Icon(Icons.add), title: Text('Upload')),
           BottomNavigationBarItem(
               icon: Icon(Icons.search), title: Text('Search')),
           BottomNavigationBarItem(

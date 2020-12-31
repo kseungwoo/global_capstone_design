@@ -1,26 +1,47 @@
+import 'package:chapter10/tab_page.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DetailPostPage extends StatelessWidget {
-  final document = {
-    'userPhotoUrl': '',
-    'email': 'test@test.com',
-    'displayName': '더미',
-  };
-//  final FirebaseUser user;
+  final DocumentSnapshot document;
+  final FirebaseUser user;
 
-//  DetailPostPage({this.document, this.user});
+  DetailPostPage(this.document, this.user);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('둘러보기'),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('상세 포스트'),
+            IconButton(
+              icon: Icon(
+                Icons.delete,
+              ),
+              alignment: Alignment.centerRight,
+              onPressed: () {
+                Firestore.instance
+                    .collection('post')
+                    .document(document.documentID)
+                    .delete();
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TabPage(user),
+                    ));
+              },
+            ),
+          ],
+        ),
       ),
-      body: _buildBody(),
+      body: _buildBody(context),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,26 +59,16 @@ class DetailPostPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Row(
-                        children: <Widget>[
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
                           Text(
-                            document['email'],
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            document['displayName'],
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
-                          SizedBox(
-                            width: 8,
-                          ),
-                          GestureDetector(
-                            onTap: _follow,
-                            child: Text(
-                              "팔로우",
-                              style: TextStyle(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
+                          // Spacer(),
                         ],
                       ),
-                      Text(document['displayName']),
                     ],
                   ),
                 )
@@ -65,7 +76,7 @@ class DetailPostPage extends StatelessWidget {
             ),
           ),
           Hero(
-            tag: document['photoUrl'],
+            tag: document.documentID,
             child: Image.network(
               document['photoUrl'],
               fit: BoxFit.cover,
@@ -81,16 +92,35 @@ class DetailPostPage extends StatelessWidget {
     );
   }
 
-
   // 팔로우
   void _follow() {
-
+    Firestore.instance
+        .collection('following')
+        .document(user.email)
+        .setData({document['email']: true});
+    Firestore.instance
+        .collection('follower')
+        .document(document['email'])
+        .setData({user.email: true});
   }
 
   // 언팔로우
   void _unfollow() {
-
+    Firestore.instance
+        .collection('following')
+        .document(user.email)
+        .setData({document['email']: false});
+    Firestore.instance
+        .collection('follower')
+        .document(document['email'])
+        .setData({user.email: false});
   }
 
   // 팔로잉 상태를 얻는 스트림
+  Stream<DocumentSnapshot> _followingStream() {
+    return Firestore.instance
+        .collection('following')
+        .document(user.email)
+        .snapshots();
+  }
 }

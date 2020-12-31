@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:chapter10/home_page.dart';
 import 'package:chapter10/tab_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,18 +8,18 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-class CreatePage extends StatefulWidget {
+class CreateRelayPage extends StatefulWidget {
   final FirebaseUser user;
-
-  CreatePage(this.user);
+  final DocumentSnapshot document;
+  CreateRelayPage(this. document, this.user);
 
   @override
-  _CreatePageState createState() => _CreatePageState();
+  _CreateRelayPageState createState() => _CreateRelayPageState();
 }
 
-class _CreatePageState extends State<CreatePage> {
+class _CreateRelayPageState extends State<CreateRelayPage> {
+
   final textEditingController = TextEditingController();
-  var _isHidden = false;
 
   @override
   void initState() {
@@ -88,7 +87,9 @@ class _CreatePageState extends State<CreatePage> {
     final firebaseStorageRef = FirebaseStorage.instance
         .ref()
         .child('post')
-        .child('${DateTime.now().millisecondsSinceEpoch}.png');
+        .child('${DateTime
+        .now()
+        .millisecondsSinceEpoch}.png');
 
     // 파일 업로드
     final task = firebaseStorageRef.putFile(
@@ -101,14 +102,27 @@ class _CreatePageState extends State<CreatePage> {
     final downloadUrl = await storageTaskSnapshot.ref.getDownloadURL();
 
     // 문서 작성
-    await Firestore.instance.collection('post').add({
-      'contents': textEditingController.text,
-      'displayName': widget.user.displayName,
-      'email': widget.user.email,
-      'photoUrl': downloadUrl,
-      'userPhotoUrl': widget.user.photoUrl,
-      'isHidden': _isHidden,
+    await Firestore.instance
+        .collection('post')
+        .document(widget.document.documentID)
+        .collection('relay')
+        .add(
+        {
+          'contents' : textEditingController.text,
+          'displayName' : widget.user.displayName,
+          'email': widget.user.email,
+          'photoUrl' : downloadUrl,
+          'userPhotoUrl' : widget.user.photoUrl,
+        }
+    );
+
+    Firestore.instance
+        .collection('post')
+        .document(widget.document.documentID)
+        .updateData({
+      'relayCount': (widget.document['relayCount'] ?? 0) + 1
     });
+
     // 완료 후 앞 화면으로 이동
     Navigator.push(
         context,
@@ -122,7 +136,9 @@ class _CreatePageState extends State<CreatePage> {
     final firebaseStorageRef = FirebaseStorage.instance
         .ref()
         .child('post')
-        .child('${DateTime.now().millisecondsSinceEpoch}.mp4');
+        .child('${DateTime
+        .now()
+        .millisecondsSinceEpoch}.mp4');
 
     // 파일 업로드
     final task = firebaseStorageRef.putFile(
@@ -130,17 +146,34 @@ class _CreatePageState extends State<CreatePage> {
       StorageMetadata(contentType: 'video/mp4'),
     );
     // 완료까지 기다림
-
+    final storageTaskSnapshot = await task.onComplete;
     // 업로드 완료 후 url
+    final downloadUrl = await storageTaskSnapshot.ref.getDownloadURL();
 
     // 문서 작성
+    await Firestore.instance
+        .collection('post')
+        .document(widget.document.documentID)
+        .collection('relay')
+        .add(
+        {
+          'contents' : textEditingController.text,
+          'displayName' : widget.user.displayName,
+          'email': widget.user.email,
+          'videoUrl' : downloadUrl,
+          'userPhotoUrl' : widget.user.photoUrl,
+        }
+    );
 
     // 완료 후 앞 화면으로 이동
-    Navigator.pop(context);
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TabPage(widget.user),
+        ));
   }
 
   Widget _buildBody() {
-
     return SingleChildScrollView(
       child: Column(
         children: <Widget>[
@@ -162,17 +195,6 @@ class _CreatePageState extends State<CreatePage> {
                   ),
                 )
               ],
-            ),
-          ),
-          Divider(),
-          ListTile(
-            leading: Text('나만 보기'),
-            trailing: Switch(
-                value: _isHidden,
-                onChanged: (isHidden) {
-                  setState((){_isHidden = !_isHidden;});
-                  print(isHidden);
-                },
             ),
           ),
           Divider(),
@@ -228,11 +250,11 @@ class _CreatePageState extends State<CreatePage> {
     return _image == null
         ? Text('No Image')
         : Image.file(
-            _image,
-            width: 50,
-            height: 50,
-            fit: BoxFit.cover,
-          );
+      _image,
+      width: 50,
+      height: 50,
+      fit: BoxFit.cover,
+    );
   }
 
   Widget _buildLocation() {

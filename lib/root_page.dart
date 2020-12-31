@@ -13,6 +13,18 @@ class RootPage extends StatelessWidget {
   }
 
   Widget _handleCurrentScreen() {
-    return LoginPage();
+    return StreamBuilder(
+      stream: FirebaseAuth.instance.onAuthStateChanged,
+      builder: (BuildContext context, AsyncSnapshot snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return LoadingPage();
+        } else {
+          if (snapshot.hasData) {
+            return TabPage(snapshot.data);
+          }
+          return LoginPage();
+        }
+      },
+    );
   }
 }

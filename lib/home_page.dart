@@ -1,28 +1,56 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'create_page.dart';
 import 'feed_widget.dart';
 
 class HomePage extends StatelessWidget {
-//  final FirebaseUser user;
+  final FirebaseUser user;
 
-//  HomePage(this.user);
+  HomePage(this.user);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text(
-            'Instagram Clone',
-            style: GoogleFonts.pacifico(),
+          title: Row(
+            children: [
+              Text(
+                'For Your Long Run  ',
+                style: GoogleFonts.chivo(),
+              ),
+              Icon(Icons.ac_unit),
+            ],
           ),
+          actions: <Widget>[
+            IconButton(
+              icon: Icon(
+                Icons.create,
+              ),
+              color: Colors.black,
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (BuildContext context) => CreatePage(user)));
+              },
+            )
+          ],
+          backgroundColor: Colors.white,
         ),
         body: _buildBody());
   }
 
   Widget _buildBody() {
     return SafeArea(
-      child: _buildNoPostBody(),
+      child: StreamBuilder<QuerySnapshot>(
+          stream: Firestore.instance.collection('post').snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return _buildNoPostBody();
+            }
+            return _buildHasPostBody(snapshot.data.documents);
+          }),
     );
   }
 
@@ -34,11 +62,11 @@ class HomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
-              'Instagram에 오신 것을 환영합니다',
+              '\n지치고 힘들 때, 주위 사람들에게 \n힘을 받아보는 건 어떠세요?',
               style: TextStyle(fontSize: 24.0),
             ),
             Padding(padding: EdgeInsets.all(8.0)),
-            Text('사진과 동영상을 보려면 팔로우하세요.'),
+            Text('응원을 주고 받을 친구가 되어보세요.'),
             Padding(padding: EdgeInsets.all(16.0)),
             SizedBox(
               width: 260.0,
@@ -53,15 +81,15 @@ class HomePage extends StatelessWidget {
                         width: 80.0,
                         height: 80.0,
                         child: CircleAvatar(
-                          backgroundImage: NetworkImage(''),
+                          backgroundImage: NetworkImage(user.photoUrl),
                         ),
                       ),
                       Padding(padding: EdgeInsets.all(8.0)),
                       Text(
-                        'test@test.com',
+                        user.email,
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      Text('test 유저'),
+                      Text(user.displayName),
                       Padding(padding: EdgeInsets.all(8.0)),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -96,13 +124,13 @@ class HomePage extends StatelessWidget {
                         ],
                       ),
                       Padding(padding: EdgeInsets.all(4.0)),
-                      Text('Facebook 친구'),
+                      Text(' '),
                       Padding(padding: EdgeInsets.all(4.0)),
                       RaisedButton(
                           color: Colors.blueAccent,
                           textColor: Colors.white,
-                          child: Text('팔로우'),
-                          onPressed: () => print('팔로우 클릭')),
+                          child: Text('응원'),
+                          onPressed: () => print('응원 클릭')),
                       Padding(padding: EdgeInsets.all(4.0))
                     ],
                   ),
@@ -116,16 +144,19 @@ class HomePage extends StatelessWidget {
   }
 
   // 게시물이 있을 경우에 표시한 body
-  Widget _buildHasPostBody() {
+  Widget _buildHasPostBody(List<DocumentSnapshot> documents) {
     // 내 게시물 5개
-
+    final myReversedPosts =
+        documents.where((doc) => (doc['isHidden']!=true)).take(10).toList();
+    final myPosts = new List.from(myReversedPosts.reversed);
     // 다른 사람 게시물 10개
-
+    // final otherPosts =
+    //     documents.where((doc) => doc['email'] != user.email).take(30).toList();
     // 합치기
+    // myPosts.addAll(otherPosts);
 
     return ListView(
-      children: List.generate(10, (i) => i).map((doc) => FeedWidget()).toList(),
+      children: myPosts.map((doc) => FeedWidget(doc, user)).toList(),
     );
   }
-  
 }

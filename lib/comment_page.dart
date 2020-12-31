@@ -1,36 +1,42 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class CommentPage extends StatelessWidget {
-  final document;
+  final DocumentSnapshot document;
 
   CommentPage(this.document);
-
-  final dummyItems = [
-    {
-      'writer': '아무개',
-      'comment': '더미 댓글',
-    },
-    {
-      'writer': '아무개',
-      'comment': '더미 댓글',
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('댓글'),
+        title: Text('응원의 한마디'),
       ),
-      body: ListView(
-        children: dummyItems.map((doc) {
-          return ListTile(
-            leading: Text(doc['writer']),
-            title: Text(doc['comment']),
-          );
-        }).toList(),
-      ),
+      body: StreamBuilder<QuerySnapshot>(
+          stream: _commentStream(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+            return ListView(
+              children: snapshot.data.documents.map((doc) {
+                return ListTile(
+                  leading: Text(doc['writer']),
+                  title: Text(doc['comment']),
+                );
+              }).toList(),
+            );
+          }),
     );
   }
 
+  Stream<QuerySnapshot> _commentStream() {
+    return Firestore.instance
+        .collection('post')
+        .document(document.documentID)
+        .collection('comment')
+        .snapshots();
+  }
 }
